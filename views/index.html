@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>POC Visa-Safe Demo</title>
+</head>
+<style>
+    .button {
+        border: 1px solid black;
+        color: white;
+        padding: 16px 32px;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 16px;
+        margin: 4px 2px;
+        cursor: pointer;
+        border-radius: 8px;
+    }
+    .button1 {background-color: coral;}
+    .button2 {background-color: skyblue;}
+    .button3 {background-color: forestgreen;}
+</style>
+<body>
+<h1>POC Visa-Safe Demo</h1>
+<h3>Send message to Mobile App</h3>
+<textarea id="messageToMobileApp" name="messageToMobileApp" rows="3" cols="40"></textarea>
+</br>
+<button class="button button1" onclick="initialize()">Initialize</button>
+</br>
+<button class="button button2" onclick="getSupportedWallets()">GetSupportedWallets</button>
+</br>
+<button class="button button3" onclick="startCardProvisioning()">StartCardProvisioning</button>
+</br>
+<h3>Message receives from Mobile App</h3>
+<textarea id="messageFromMobileApp" name="messageFromMobileApp" rows="5" cols="40" readonly="true"></textarea>
+<iframe src="http://localhost:8090/segmint/web/87562904/offers/10023" width="1135px" height="200px" frameBorder="0" style="border: 0;"></iframe>
+</body>
+<script>
+    function initialize() {
+    console.log('hello');
+    let inputArg = document.getElementById("messageToMobileApp")
+    let inputArgs = inputArg.value.split(",")
+    let vpInitRequest = JSON.stringify({environment: inputArgs[0], appId: inputArgs[1]})
+
+    try {
+        if (typeof Android !== "undefined" && Android !== null) {
+            Android.initialize(vpInitRequest);
+        } else if(navigator.userAgent && navigator.userAgent.match(/(iPad|iPhone|iPod)/i)) {
+            webkit.messageHandlers.initialize.postMessage(vpInitRequest)
+        }
+    } catch (ex) {
+        updateMessageFromMobileApp(`Initialize fail with exception - ${ex.message}`)
+    }
+}
+
+function initializationSuccess(vpInitResponse) {
+    let initRsp = JSON.parse(vpInitResponse)
+    let signedNonce = initRsp.signedNonce
+
+    let updateMsg = `JSON InitializationSuccess response:${vpInitResponse}\n\nAfter parsing:\n signedNonce = ${signedNonce}`
+    updateMessageFromMobileApp(updateMsg)
+}
+
+function getSupportedWallets() {
+    let inputArg = document.getElementById("messageToMobileApp")
+    let vpSupportedWalletRequest = JSON.stringify({encryptedPayload: inputArg.value})
+
+    try {
+        if (typeof Android !== "undefined" && Android !== null) {
+            Android.getSupportedWallets(vpSupportedWalletRequest);
+        } else if(navigator.userAgent && navigator.userAgent.match(/(iPad|iPhone|iPod)/i)) {
+            webkit.messageHandlers.getSupportedWallets.postMessage(vpSupportedWalletRequest)
+        }
+    } catch (ex) {
+        updateMessageFromMobileApp(`GetSupportedWallets fail with exception - ${ex.message}`)
+    }
+}
+
+function supportedWalletSuccess(vpSupportedWalletResponse) {
+    let supportedWalletRsp = JSON.parse(vpSupportedWalletResponse)
+    let wallets = supportedWalletRsp.wallets
+
+    let updateMsg = `JSON SupportedWalletSuccess response:${vpSupportedWalletResponse}\n\nAfter parsing:` +
+                    `\n wallets: [\n[walletDescription = ${wallets[0].walletDescription},\n code = ${wallets[0].code},` +
+                    `\n status = ${wallets[0].status},\n reason = ${wallets[0].reason}]\n]`
+    updateMessageFromMobileApp(updateMsg)
+}
+
+function startCardProvisioning() {
+    let inputArg = document.getElementById("messageToMobileApp")
+    let vpCardProvisioningRequest = JSON.stringify({walletCode: inputArg.value})
+
+    try {
+        if (typeof Android !== "undefined" && Android !== null) {
+            Android.startCardProvisioning(vpCardProvisioningRequest);
+        } else if(navigator.userAgent && navigator.userAgent.match(/(iPad|iPhone|iPod)/i)) {
+            webkit.messageHandlers.startCardProvisioning.postMessage(vpCardProvisioningRequest)
+        }
+    } catch (ex) {
+        updateMessageFromMobileApp(`StartCardProvisioning fail with exception - ${ex.message}`)
+    }
+}
+
+function cardProvisioningSuccess(vpCardProvisioningResponse) {
+    let cardProvisioningRsp = JSON.parse(vpCardProvisioningResponse)
+    let walletStatus = cardProvisioningRsp.walletStatus
+
+    let updateMsg = `JSON CardProvisioningSuccess response:${vpCardProvisioningResponse}\n\nAfter parsing:` +
+                    `\n walletStatus = ${walletStatus}`
+    updateMessageFromMobileApp(updateMsg)
+}
+
+function processError(vpError) {
+    let errorRsp = JSON.parse(vpError)
+    console.log(errorRsp);
+    let type = errorRsp.type
+    let code = errorRsp.code
+    let description = errorRsp.description
+    let correlationID = errorRsp.correlationID
+
+    let updateMsg = `JSON Error response:${vpError}\n\nAfter parsing:\n type = ${type}\n code = ${code}`
+                    + `\n description = ${description}\n correlationID = ${correlationID}`
+    updateMessageFromMobileApp(updateMsg)
+}
+
+function updateMessageFromMobileApp(message){
+    let tbxMessageFromMobileApp = document.getElementById("messageFromMobileApp")
+    tbxMessageFromMobileApp.value = message
+}
+</script>
+<script>
+    function handleInitializationSuccess(vpInitResponse) {
+        initializationSuccess(vpInitResponse)
+    }
+
+    function handleSupportedWalletSuccess(vpSupportedWalletResponse) {
+        supportedWalletSuccess(vpSupportedWalletResponse)
+    }
+
+    function handleCardProvisioningSuccess(vpCardProvisioningResponse) {
+        cardProvisioningSuccess(vpCardProvisioningResponse)
+    }
+
+    function handleError(vpError) {
+        processError(vpError)
+    }
+</script>
+</html>
